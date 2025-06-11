@@ -1,15 +1,20 @@
 {
   "version": 2,
+  "functions": {
+    "api/*.py": {
+      "runtime": "vercel-python@0.5.0"
+    }
+  },
   "builds": [
     {
-      "src": "api/generate-spreadsheet.py",
+      "src": "api/generate_spreadsheet.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
-      "src": "/api/generate-spreadsheet",
-      "dest": "/api/generate-spreadsheet.py"
+      "src": "/api/generate_spreadsheet",
+      "dest": "/api/generate_spreadsheet.py"
     }
   ]
 }
