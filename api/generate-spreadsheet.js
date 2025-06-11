@@ -1,4 +1,8 @@
 import * as XLSX from 'xlsx';
+import { v4 as uuidv4 } from 'uuid';
+
+// Store files in memory temporarily
+const fileStorage = new Map();
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -29,46 +33,44 @@ export default async function handler(req, res) {
     ];
 
     // Process each day
-    Object.entries(days || {}).forEach(([day, meals]) => {
+    Object.entries(days).forEach(([day, meals]) => {
       let dayCalories = 0;
       let dayProtein = 0;
 
-      if (Array.isArray(meals)) {
-        meals.forEach(meal => {
-          if (meal.ingredients && Array.isArray(meal.ingredients)) {
-            meal.ingredients.forEach(ing => {
-              dayCalories += ing.calories || 0;
-              dayProtein += ing.protein || 0;
-            });
-          }
-        });
+      meals.forEach(meal => {
+        if (meal.ingredients) {
+          meal.ingredients.forEach(ing => {
+            dayCalories += ing.calories || 0;
+            dayProtein += ing.protein || 0;
+          });
+        }
+      });
 
-        summaryData.push([day, dayCalories, dayProtein, meals.length]);
+      summaryData.push([day, dayCalories, dayProtein, meals.length]);
 
-        // Create detailed sheet for each day
-        const dayData = [
-          ['Meal Name', 'Ingredient', 'Quantity', 'Unit', 'Calories', 'Protein']
-        ];
+      // Create detailed sheet for each day
+      const dayData = [
+        ['Meal Name', 'Ingredient', 'Quantity', 'Unit', 'Calories', 'Protein']
+      ];
 
-        meals.forEach(meal => {
-          if (meal.ingredients && Array.isArray(meal.ingredients)) {
-            meal.ingredients.forEach((ing, index) => {
-              dayData.push([
-                index === 0 ? (meal.meal_name || 'Unnamed Meal') : '',
-                ing.name || 'Unknown',
-                ing.quantity || 0,
-                ing.unit || '',
-                ing.calories || 0,
-                ing.protein || 0
-              ]);
-            });
-            dayData.push(['', '', '', '', '', '']); // Empty row
-          }
-        });
+      meals.forEach(meal => {
+        if (meal.ingredients) {
+          meal.ingredients.forEach((ing, index) => {
+            dayData.push([
+              index === 0 ? meal.meal_name : '',
+              ing.name,
+              ing.quantity,
+              ing.unit,
+              ing.calories,
+              ing.protein
+            ]);
+          });
+          dayData.push(['', '', '', '', '', '']); // Empty row
+        }
+      });
 
-        const dayWs = XLSX.utils.aoa_to_sheet(dayData);
-        XLSX.utils.book_append_sheet(wb, dayWs, day);
-      }
+      const dayWs = XLSX.utils.aoa_to_sheet(dayData);
+      XLSX.utils.book_append_sheet(wb, dayWs, day);
     });
 
     // Add summary sheet
@@ -78,16 +80,33 @@ export default async function handler(req, res) {
     // Generate Excel file
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
-    // Set headers for direct download
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="meal-plan.xlsx"');
-    res.setHeader('Content-Length', buffer.length);
+    // Store in memory with unique ID
+    const fileId = uuidv4();
+    fileStorage.set(fileId, {
+      buffer: buffer,
+      timestamp: Date.now()
+    });
 
-    // Send the file directly
-    return res.send(buffer);
+    // Clean up old files (older than 1 hour)
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    for (const [id, data] of fileStorage.entries()) {
+      if (data.timestamp < oneHourAgo) {
+        fileStorage.delete(id);
+      }
+    }
+
+    // Return download link
+    return res.json({
+      success: true,
+      download_url: `https://meal-plan-api-one.vercel.app/api/download/${fileId}`,
+      filename: 'meal-plan.xlsx'
+    });
 
   } catch (error) {
     console.error('Error:', error);
-    return res.status(500).json({ error: 'Failed to generate spreadsheet', details: error.message });
+    return res.status(500).json({ error: 'Failed to generate spreadsheet' });
   }
 }
+
+// Export the storage for the download function
+export { fileStorage };
