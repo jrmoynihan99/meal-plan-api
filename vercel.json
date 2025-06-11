@@ -1,9 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/*.py",
-      "use": "@vercel/python"
+  "functions": {
+    "api/generate-spreadsheet.py": {
+      "runtime": "@vercel/python"
     }
-  ]
+  }
 }
