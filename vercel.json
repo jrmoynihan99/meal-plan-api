@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/generate-spreadsheet.py",
+      "src": "api/generate_spreadsheet.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
-      "src": "/api/generate-spreadsheet",
-      "dest": "/api/generate-spreadsheet.py"
+      "src": "/api/generate_spreadsheet",
+      "dest": "/api/generate_spreadsheet.py"
     }
   ]
 }
