@@ -1,9 +1,11 @@
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
-import { writeFileSync } from 'fs';
+
+// Store files in memory temporarily
+const fileStorage = new Map();
 
 export default async function handler(req, res) {
-  // Enable CORS so your GPT can call this API
+  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -78,15 +80,25 @@ export default async function handler(req, res) {
     // Generate Excel file
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
-    // Save with unique ID
+    // Store in memory with unique ID
     const fileId = uuidv4();
-    const filePath = `/tmp/${fileId}.xlsx`;
-    writeFileSync(filePath, buffer);
+    fileStorage.set(fileId, {
+      buffer: buffer,
+      timestamp: Date.now()
+    });
+
+    // Clean up old files (older than 1 hour)
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    for (const [id, data] of fileStorage.entries()) {
+      if (data.timestamp < oneHourAgo) {
+        fileStorage.delete(id);
+      }
+    }
 
     // Return download link
     return res.json({
       success: true,
-      download_url: `https://${req.headers.host}/api/download/${fileId}`,
+      download_url: `https://meal-plan-api-one.vercel.app/api/download/${fileId}`,
       filename: 'meal-plan.xlsx'
     });
 
@@ -95,3 +107,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to generate spreadsheet' });
   }
 }
+
+// Export the storage for the download function
+export { fileStorage };
