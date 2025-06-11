@@ -5,12 +5,6 @@
       "runtime": "vercel-python@0.5.0"
     }
   },
-  "builds": [
-    {
-      "src": "api/generate_spreadsheet.py",
-      "use": "@vercel/python"
-    }
-  ],
   "routes": [
     {
       "src": "/api/generate_spreadsheet",
