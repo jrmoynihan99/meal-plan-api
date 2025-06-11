@@ -1,16 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/generate-spreadsheet.py",
-      "use": "@vercel/python"
+  "functions": {
+    "api/generate-spreadsheet.py": {
+      "runtime": "python3.9"
     }
-  ],
-  "routes": [
-    {
-      "src": "/api/generate-spreadsheet",
-      "methods": ["POST"],
-      "dest": "api/generate-spreadsheet.py"
-    }
-  ]
+  }
 }
