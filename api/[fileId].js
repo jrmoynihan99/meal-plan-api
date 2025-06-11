@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'fs';
+import { fileStorage } from '../generate-spreadsheet.js';
 
 export default async function handler(req, res) {
   const { fileId } = req.query;
@@ -7,23 +7,20 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'File ID required' });
   }
 
-  const filePath = `/tmp/${fileId}.xlsx`;
-
   try {
-    // Check if file exists
-    if (!existsSync(filePath)) {
+    // Get file from memory storage
+    const fileData = fileStorage.get(fileId);
+    
+    if (!fileData) {
       return res.status(404).json({ error: 'File not found or expired' });
     }
-
-    // Read the file
-    const buffer = readFileSync(filePath);
 
     // Set headers to trigger download
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename="meal-plan.xlsx"');
 
     // Send the file
-    return res.send(buffer);
+    return res.send(fileData.buffer);
 
   } catch (error) {
     console.error('Error downloading file:', error);
