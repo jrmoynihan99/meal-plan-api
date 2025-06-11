@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "builds": [
     {
       "src": "api/generate-spreadsheet.py",
@@ -8,6 +9,7 @@
   "routes": [
     {
       "src": "/api/generate-spreadsheet",
+      "methods": ["POST"],
       "dest": "api/generate-spreadsheet.py"
     }
   ]
