@@ -1,8 +1,6 @@
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
-
-// Store files in memory temporarily
-const fileStorage = new Map();
+import { kv } from '@vercel/kv';
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -79,21 +77,13 @@ export default async function handler(req, res) {
 
     // Generate Excel file
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    
+    // Convert buffer to base64 for storage
+    const base64Buffer = buffer.toString('base64');
 
-    // Store in memory with unique ID
+    // Store in Vercel KV with expiration (1 hour = 3600 seconds)
     const fileId = uuidv4();
-    fileStorage.set(fileId, {
-      buffer: buffer,
-      timestamp: Date.now()
-    });
-
-    // Clean up old files (older than 1 hour)
-    const oneHourAgo = Date.now() - (60 * 60 * 1000);
-    for (const [id, data] of fileStorage.entries()) {
-      if (data.timestamp < oneHourAgo) {
-        fileStorage.delete(id);
-      }
-    }
+    await kv.set(fileId, base64Buffer, { ex: 3600 });
 
     // Return download link
     return res.json({
@@ -107,6 +97,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to generate spreadsheet' });
   }
 }
-
-// Export the storage for the download function
-export { fileStorage };
